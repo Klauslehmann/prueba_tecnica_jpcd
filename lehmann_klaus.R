@@ -1,5 +1,4 @@
 
-library(guaguas)
 library(tidyverse)
 library(rlang)
 library(feather)
@@ -63,7 +62,7 @@ resumen <- function(data, var, group) {
 casen %>%
   group_by(folio) %>%
   slice(1) %>%
-  ungroup() %>% 
+  ungroup() %>%
   resumen( "ytotcorh", "region")
 
 
