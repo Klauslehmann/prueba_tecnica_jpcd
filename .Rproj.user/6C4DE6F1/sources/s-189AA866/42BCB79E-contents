@@ -1,0 +1,133 @@
+
+library(guaguas)
+library(tidyverse)
+library(rlang)
+
+# Función 1
+resumen <- function(data, var, group) {
+  
+  data <- casen_reducida
+  group <- "region"
+  var <- "yautcorh"
+    
+  name_min <- paste0(var, "_min")
+  name_max <- paste0(var, "_max")
+  name_mean <- paste0(var, "_mean")
+  name_median <- paste0(var, "_median")
+  
+  data %>% 
+    group_by(!!parse_expr(group)) %>% 
+    summarise(
+      !!parse_expr(name_min) := min(!!parse_expr(var)),
+      !!parse_expr(name_max) := max(!!parse_expr(var)),
+      !!parse_expr(name_mean) := mean(!!parse_expr(var)),
+      !!parse_expr(name_median) := median(!!parse_expr(var))) 
+  
+}
+
+
+# Función 2
+graficar <- function(data, var, group, title_text = "") {
+  name_var <- paste0(var, "_mean")
+  mean <- mean(data[[var]])
+  
+  data %>% 
+    group_by(!!parse_expr(group)) %>% 
+    summarise(!!parse_expr(name_var) := mean(!!parse_expr(var))) %>% 
+    ggplot(aes(!!parse_expr(group), !!parse_expr(name_var))) +
+    geom_bar(stat = "identity") +
+    geom_hline(yintercept = mean) +
+    labs(title = title_text)
+  
+  
+}
+
+
+
+load("/mnt/c/Users/klehm/OneDrive/Escritorio/material_prueba_tecnica/casen_2017_reducida.RData")
+
+coinciden <- casen_reducida %>% 
+  group_by(folio) %>% 
+  mutate(tot_per2 = n()) %>% 
+  ungroup() %>% 
+  mutate(coincide = if_else(tot_per2 == npersonas, 1, 0 ) ) %>% 
+  filter(coincide == 1) %>% 
+  nrow()
+
+coinciden == nrow(casen_reducida)
+
+casen_reducida %>% 
+  mutate(edad_t = case_when(
+    edad >= 0 & edad <= 9 ~ 1, 
+    edad >= 10 & edad <= 19 ~ 2,
+    edad >= 20 & edad <= 29 ~ 3,
+    edad >= 30 & edad <= 39 ~ 4,
+    edad >= 40 & edad <= 49 ~ 5,
+    edad >= 50 & edad <= 59 ~ 6,
+    edad >= 60 & edad <= 69 ~ 7,
+    edad >= 70 & edad <= 79 ~ 8,
+    edad >= 80  ~ 9
+  )) %>% 
+  group_by(edad_t, sexo) %>% 
+  summarise(conteo = sum(expr) )
+
+
+casen_reducida %>% 
+  mutate(edad_t = case_when(
+    edad >= 0 & edad <= 9 ~ 1, 
+    edad >= 10 & edad <= 19 ~ 2,
+    edad >= 20 & edad <= 29 ~ 3,
+    edad >= 30 & edad <= 39 ~ 4,
+    edad >= 40 & edad <= 49 ~ 5,
+    edad >= 50 & edad <= 59 ~ 6,
+    edad >= 60 & edad <= 69 ~ 7,
+    edad >= 70 & edad <= 79 ~ 8,
+    edad >= 80  ~ 9
+  )) %>% 
+  group_by(edad_t) %>%
+  count(sexo, wt = expr)
+
+casen_reducida %>%
+  group_by(folio) %>%
+  slice(1) %>%
+  ungroup() %>% 
+  resumen( "yautcorh", "region")
+
+casen_reducida %>%
+  mutate(across(c("yautcorh", "region"), as.numeric)) %>% 
+  group_by(folio) %>%
+  slice(1) %>%
+  ungroup() %>% 
+  graficar( "yautcorh", "region", "ingreso promedio por región")
+
+
+
+La evidencia muestra que las redes neoronales funcionan mejor que los algoritmos tradicionales de machine learning cuando la cantidad de datos de entrenamiento es alta. Por otro lado, cuando el set de entrenamiento es pequeño, los algoritmos tradicionales muestran un desempeño similar o mejor. En ese sentido, como regla general (cada tarea tiene sus particularidades ), es recomendable utilizar modelos de deep learning cuando se dispone de un volumen importante de datos de entrenamiento. De hecho, se ha observado que los algoritmos tradicionales, en relación con la cantidad de datos de entrenamiento, presentan un rendimiento creciente a tasas decrecientes. Dicho de otro modo, estos algoritmos mejoran en la medida en que crece el set de entrenamiento, sin embargo, llegan a un punto en el que el efecto marginal de agregar un nuevo ejemplo al set de datos es muy bajo. Al contrario, los modelos basados en deep learning son capaces de aprovechar de mejor forma el aumento en la cantidad de datos, de modo que, en general, tenderán a "aprender" mejor en la medida de que se incorporen más datos.      
+
+Si no se cuenta con más antecedentes que la medida de accuracy, una primera evaluación sería que el clasificador tiene un mal desempeño, ya que el contrafactual es que, sin ningún esfuerzo, se podría etiquetar todo con la categoría más prevalente, obteniendo una precisión del 97%, es decir, un punto más que lo generado por el modelo. Ahora bien, una estrategia como esta tendría una precisión de 0% en la clase menos prevalente, lo cual implicaría que nuestro modelo no tendría ninguna utilidad. Esto quiere decir que la medida de accuracy no es suficiente para un problema como este, ya que por lo general interesa predecir de manera correcta las 2 clases y, de hecho, en muchos casos es más importante etiquetar correctamente la clase minoritaria (fraudes bancarios, detección de spams, etc). Esto hace necesario utilizar medidas como precision, recall y F1, que incorporan al análisis los falsos positivos y falsos negativos. En ese sentido, es posible que para el caso planteado se haya hecho un intento por clasificar correctamente la clase menos prevalente a costa de cometer errores en la menos prevalente, lo cual en muchos casos puede ser algo deseable. Por ejemplo, si lo que interesa es identificar muy bien todos los fraudes bancarios, lo que habría que hacer es sesgar nuestro modelo hacia la predicción de falsos positivos para la categoría fraude, generando algunos falsos negativos en la categoría más prevalente y, por ende, bajando la medida de accuracy. En conclusión, la utilización de la métrica accuracy en un problema de clasifiación binaria con clases muy desbalanceadas no es suficiente para evaluar el desempeño de un modelo, por ende, es imprescindible incoporar otras métricas. 
+
+Para un proyecto como el que se plantea, propondría un equipo conformado por 3 personas, un lider de proyecto y dos analistas. En el caso del lider del proyecto, debiese ser alguien que conozca ampliamente el quehacer de la institución, tanto en un sentido técnico como organizativo. Este perfil no necesariamente debe entender todos los detalles de las técnicas utilizadas para la tarea, pero sí debe ser capaz de comunicar de manera clara a los demás equipos del INE los procedimientos generales. Además, debe velar por el cumplimiento de las fechas y asegurar que el objetivo del proyecto se cumpla. 
+
+En el caso de los analistas, el primer perfil debiese ser alguien que cuente con sólidas herramientas para el procesamiento de imágenes, sin que deba entender completamente el quehacer de la institución ni el uso final de la estratificación del marco. El segundo analista debería ser alguien que tenga experiencia en la institución y comprenda cabalmente la utilidad que tiene el marco muestral y su estratificación. Además, debe contar con altas habilidades de programación, que le permitan comunicarse correctamente con el primer analista, sin que sea necesario que maneje todos los detalles de las técnicas específicas para el procesamiento de imágenes.
+
+Esta estructura de trabajo debiese ser flexible, de modo tal de que un analista pueda formar parte de más de un proyecto y al mismo tiempo liderar 
+
+En relación con las etapas, plantearía las siguientes:
+  1) Revisión muy breve de la literatura relacionada con la estratificación de marcos muestrales en base a imágenes satelitales. El objeto de esta primera revisión es únicamente identificar los datos utilizados para llevar a cabo estas tareas y no entender completamente las metodologías.
+2) Revisión de los datos disponibles para llevar a cabo la tarea.  Es muy importante tener certeza de cuáles son los datos que están a disposición, para llevar a cabo la tarea. Esto debería encaminar el proyecto hacia un rumbo u otro. Incluso, es posible que, en función de los datos disponibles, sea necesario reestructurar el proyecto
+3) Revisión detallada de la literatura, con el objeto de entender la metodología utilizada para llevar a cabo estas tareas. 
+4) Ejecución de la estratificación, considerando todos los pasos que existen dentro del flujo de trabajo de un proyecto de machine learning. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
